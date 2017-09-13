@@ -8,11 +8,41 @@ const log = require("rf-log"),
 let passport = null;
 
 module.exports.start = function (options, next) {
-   if (options.initPassport && options.express) {
-      passport = require('passport');
+   const express = require("rf-load").require("http").app,
+         passport = require('passport');
 
-      options.express.use(passport.initialize());
-      options.express.use(passport.session());
+   if (options.initSession) {
+      const config = require("rf-load").require("rf-config").config,
+         cookieParser = require('cookie-parser'),
+         session = require('express-session'),
+         MongoStore = require('connect-mongo')(session);
+
+      // session management
+      express.use(cookieParser());
+      express.use(session({
+         secret: config.sessionSecret,
+         resave: false, saveUninitialized: false,
+         store: new MongoStore({
+             // create collection "session" in db user
+             mongooseConnection: db.user.mongooseConnection,
+
+             // for debugging
+             //url: "mongodb://localhost:27017/user",
+
+             //ttl: 14 * 24 * 60 * 60, // sessions expire after 14 days
+             touchAfter: 24 * 3600 // session is updated in DB only once every 24h and on change
+             }),
+         cookie: {
+            path: '/',
+            //domain: 'localhost',
+            maxAge: 1000 * 60 * 24 * 28 // four weeks
+         }
+      }));
+   }
+
+   if (options.initPassport) {
+      express.use(passport.initialize());
+      express.use(passport.session());
 
       passport.serializeUser((user, done) => done(null, user.profileId));
 

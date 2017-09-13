@@ -3,7 +3,8 @@
 * This is a somewhat specific module for internal RapidFacture usage, that may not be sufficiently generalized to be suitable for anyone else
 * NodeJS module for user access, OAuth and passport control as well as authorization checks
 * Dependencies: rf-log, rf-load, the db module, bcrypt-nodejs
-   * When passport is used: passport
+   * When session init function is used: http module, cookie-parser, express-session, connect-mongo, rf-config
+   * When passport is used: passport, http module
    * When login functionality is enabled: passport-local
    * When OAuth server is used: oauth2orize, passport-http, passport-oauth2-client-password, passport-http-bearer
 
@@ -19,7 +20,7 @@ const express = require("express"),
 const app = express();
 
 acl.start({
-   express: app, // Provide express
+   initSession: true, // Initialize express-session
    initPassport: true, // Init Passport to allow for user state access
    initLogin: true, // Init Passport-local to allow user authorization
    initOAuthServer: true, // Init OAuth server
@@ -35,11 +36,14 @@ load.file("db");
 load.file("http");
 // ...
 load.module("rf-acl", {
-   express: load.require("http").app, // Provide express
+   initSession: true,
+   sessionSecret: config.sessionSecret,
    initPassport: true, // Init Passport to allow for user state access
    initLogin: true, // Init Passport-local to allow user authorization
    initOAuthServer: true, // Init OAuth server
 });
+//...
+load.startModules();
 ```
 
 ## User retrieval from database
@@ -73,5 +77,5 @@ acl.findByUsername("fred", function (err, user) {
 ```
 
 ## Legal Issues
-* Licenese: MIT
+* License: MIT
 * Author: Julian von Mendel
