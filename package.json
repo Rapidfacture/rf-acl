@@ -1,7 +1,7 @@
 {
     "name": "rf-acl",
     "version": "0.1.0",
-    "description": "NodeJS access control lib that can set up a shared MongoDB session, configure Passport and access user data in MongoDB.",
+    "description": "NodeJS module that configures passport, the OAuth server, provides functions for user access in database and does authorization checks",
     "author": "Rapidfacture GmbH",
     "license": "MIT",
     "repository": {

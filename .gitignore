@@ -1,0 +1,10 @@
+config/conf
+
+dest
+
+node_modules/
+npm-debug.log
+
+*~
+.*.swp
+
