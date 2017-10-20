@@ -20,9 +20,6 @@
    "main": "index.js",
    "dependencies": {
       "node-cache": "4.1.1",
-      "jsonwebtoken": "^5.0.5",
-      "rf-log": "^0.1.2",
-      "rf-config": "^0.1.7",
-      "rf-load": "^0.1.4"
+      "jsonwebtoken": "^5.0.5"
    }
 }
