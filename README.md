@@ -9,6 +9,9 @@
 > npm install rf-acl
 
 
+## Dependencies
+
+Needs to have rf-log, rf-config & rf-load to be installed.
 
 
 ## Legal Issues
