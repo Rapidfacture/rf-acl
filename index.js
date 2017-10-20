@@ -106,6 +106,12 @@ module.exports.start = function(options, startNextModule) {
                      db.user.sessions.findOne({
                            "token": token
                         })
+                        .populate({
+                           path: 'user',
+                           populate({
+                              path: 'account'
+                           })
+                        })
                         .exec(function(err, doc) {
 
                            if (doc) {
