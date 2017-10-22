@@ -1,6 +1,6 @@
 {
    "name": "rf-acl",
-   "version": "0.1.4",
+   "version": "0.1.5",
    "description": "Express middleware for acl based on tokens. Session and Session Secret from Db.",
    "author": "Rapidfacture GmbH",
    "license": "MIT",
