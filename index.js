@@ -108,9 +108,9 @@ module.exports.start = function(options, startNextModule) {
                         })
                         .populate({
                            path: 'user',
-                           populate({
+                           populate: {
                               path: 'account'
-                           })
+                           }
                         })
                         .exec(function(err, doc) {
 
