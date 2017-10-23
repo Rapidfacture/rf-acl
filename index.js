@@ -155,41 +155,46 @@ module.exports.start = function(options, startNextModule) {
 
          if (internal_ip_addresses.indexOf(ip) < 0) {
 
-            for (var c in config.acl) {
+            if (!config.acl) {
+               log.warning("No acls found in config! Nothing is protected!");
+               next();
+            } else {
+               for (var c in config.acl) {
 
-               if (req.url.match(new RegExp(c, 'g'))) {
+                  if (req.url.match(new RegExp(c, 'g'))) {
 
-                  //protected
-                  if (config.acl[c] !== false) {
+                     //protected
+                     if (config.acl[c] !== false) {
 
 
-                     //req._session
-                     // req._token
+                        //req._session
+                        // req._token
 
-                     // TODO
-                     //Check for roles for this route
-                     // if (decoded.roles.indexOf(config.acl[c]) < 0) {
-                     //    return res.status(403).json({
-                     //       success: false,
-                     //       message: 'Wrong permissions.'
-                     //    }, 403);
-                     // }
+                        // TODO
+                        //Check for roles for this route
+                        // if (decoded.roles.indexOf(config.acl[c]) < 0) {
+                        //    return res.status(403).json({
+                        //       success: false,
+                        //       message: 'Wrong permissions.'
+                        //    }, 403);
+                        // }
 
-                     // everything good
+                        // everything good
+                        next();
+                     } else { // no token => error
+
+                        next();
+
+                        // return res.status(403).json({
+                        //    success: false,
+                        //    message: 'No token provided.'
+                        // }, 403);
+                     }
+
+                  //unprotected
+                  } else {
                      next();
-                  } else { // no token => error
-
-                     next();
-
-                     // return res.status(403).json({
-                     //    success: false,
-                     //    message: 'No token provided.'
-                     // }, 403);
                   }
-
-               //unprotected
-               } else {
-                  next();
                }
             }
          // internal
