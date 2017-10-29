@@ -51,7 +51,7 @@ module.exports.start = function (options, startNextModule) {
             }
          })
       }
-      config.sessionSecret = sessionSecret // login function als needs it
+      config.sessionSecret = sessionSecret // login function might need it
       startACL(sessionSecret)
    })
 
