@@ -12,7 +12,7 @@ module.exports = function (grunt) {
          options: {
             configFile: '.eslintrc'
          },
-         target: ['*.*js']
+         target: ['*.js']
       }
 
 
