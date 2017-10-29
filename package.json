@@ -1,25 +1,33 @@
 {
    "name": "rf-acl",
-   "version": "0.1.10",
-   "description": "Express middleware for acl based on tokens. Session and Session Secret from Db.",
+   "version": "0.1.11",
+   "description": "Express middleware for acl based on tokens for Rapidfacture apps. Session and Session Secret from Db.",
    "author": "Rapidfacture GmbH",
    "license": "MIT",
    "repository": {
       "type": "git",
       "url": "git@github.com:RAPIDFACTURE/acl.git"
    },
-   "maintainers": [
-     {
+   "maintainers": [{
       "name": "felix_furtmayr",
       "email": "ff@rapidfacture.com"
-     }
-   ],
+   }],
    "author": {
-     "name": "Felix Furtmayr"
+      "name": "Felix Furtmayr"
    },
    "main": "index.js",
    "dependencies": {
       "node-cache": "4.1.1",
       "jsonwebtoken": "^5.0.5"
+   },
+   "devDependencies": {
+      "husky": "0.14.3",
+      "grunt": "1.0.1",
+      "grunt-eslint": "20.1.0"
+   },
+   "scripts": {
+      "prepush": "npm test",
+      "prepublish": "npm test",
+      "test": "grunt"
    }
 }
