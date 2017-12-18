@@ -5,8 +5,8 @@
    "author": "Rapidfacture GmbH",
    "license": "MIT",
    "repository": {
-      "type": "git",
-      "url": "git@github.com:RAPIDFACTURE/acl.git"
+     "type": "git",
+     "url": "git@github.com:RAPIDFACTURE/rf-acl.git"
    },
    "maintainers": [{
       "name": "felix_furtmayr",
