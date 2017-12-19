@@ -16,6 +16,7 @@ var jwt = require('jsonwebtoken'),
    log = require('rf-log'),
    db = require('rf-load').require('db').db,
    app = require('rf-load').require('http').app,
+   API = require('rf-load').require('rf-api').API,
    _ = require('lodash')
 
 
@@ -57,7 +58,6 @@ module.exports.start = function (options, startNextModule) {
 
 
    function startACL (sessionSecret) {
-      const Services = require('rf-load').require('API').Services
       // Add token processing functions for applications not using express
       // Returns a Promise of userInfo
       /**
@@ -98,8 +98,8 @@ module.exports.start = function (options, startNextModule) {
          })
       }
       // Register services
-      Services.registerFunction(verifyToken)
-      Services.registerFunction(checkACL)
+      API.Services.registerFunction(verifyToken)
+      API.Services.registerFunction(checkACL)
       // process the token
       app.use(function (req, res, next) {
          // check for token
