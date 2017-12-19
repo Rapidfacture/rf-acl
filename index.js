@@ -5,7 +5,7 @@
  */
 
 
-var // jwt = require('jsonwebtoken'),
+var jwt = require('jsonwebtoken'),
    NodeCache = require('node-cache'),
    myCache = new NodeCache({
       stdTTL: 1000,
@@ -15,7 +15,8 @@ var // jwt = require('jsonwebtoken'),
    config = require('rf-config'),
    log = require('rf-log'),
    db = require('rf-load').require('db').db,
-   app = require('rf-load').require('http').app
+   app = require('rf-load').require('http').app,
+   _ = require('lodash')
 
 
 
@@ -28,7 +29,6 @@ for (var k in interfaces) {
       internalIpAddresses.push(address.address.replace('::ffff:', ''))
    }
 }
-
 
 module.exports.start = function (options, startNextModule) {
    // get session secret from db
@@ -57,6 +57,49 @@ module.exports.start = function (options, startNextModule) {
 
 
    function startACL (sessionSecret) {
+      const Services = require('rf-load').require('API').Services
+      // Add token processing functions for applications not using express
+      // Returns a Promise of userInfo
+      /**
+       * Verify if a given token is correct in the current context
+       */
+      function verifyToken (token) {
+         return new Promise((resolve, reject) => {
+            jwt.verify(token, sessionSecret, { ignoreExpiration: true }, (err, decoded) => {
+               if (err) {
+                  return reject(err)
+               } else {
+                  return resolve(decoded)
+               }
+            })
+         })
+      }
+      /**
+       * Check if the current token allows the ACL to take place
+       * Returns a Promise that:
+       *    - resolves with userInfo if permitted
+       *    - rejects if not permitted
+       *
+       */
+      function checkACL (token, acl) {
+         // TODO proper implementation
+         return verifyToken(token).then(userInfo => {
+            // TODO actually verify something. Currently this will accept in any case
+            // NOTE: any exception will reject
+            // if(acl.section == ...) {...} else {throw new Exception("Not authorized");}
+            return userInfo
+         }).catch(err => {
+            // If ACL is empty, this is not considered an error
+            if (_.isEmpty(acl)) {
+               return {} // No error, return empty user object
+            }
+            // Else: This is an error, reject the promise
+            throw err
+         })
+      }
+      // Register services
+      Services.registerFunction(verifyToken)
+      Services.registerFunction(checkACL)
       // process the token
       app.use(function (req, res, next) {
          // check for token
@@ -68,9 +111,13 @@ module.exports.start = function (options, startNextModule) {
                   // make data accessible afterwards
                   req._session = session
                   req._token = token
-                  // req._decoded = jwt.verify(token, sessionSecret, {
-                  //    ignoreExpiration: true
-                  // });
+                  // TODO enable this when possible
+                  // verifyToken().then(decoded => {
+                  //    req._decoded = decoded;
+                  //    next()
+                  // }).catch(err => {
+                  //    log.error(`Bad token: ${err}`)
+                  // })
                   next()
                })
             } catch (err) {
