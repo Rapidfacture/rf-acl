@@ -6,6 +6,7 @@
 
 
 var jwt = require('jsonwebtoken'),
+   async = require('async'),
    NodeCache = require('node-cache'),
    myCache = new NodeCache({
       stdTTL: 1000,
@@ -16,7 +17,10 @@ var jwt = require('jsonwebtoken'),
    log = require('rf-log'),
    db = require('rf-load').require('db').db,
    app = require('rf-load').require('http').app,
+   // websocket = require('rf-load').require('websocket').IO,
    API = require('rf-load').require('rf-api').API,
+
+
    _ = require('lodash')
 
 
@@ -65,7 +69,7 @@ module.exports.start = function (options, startNextModule) {
        */
       function verifyToken (token) {
          return new Promise((resolve, reject) => {
-            jwt.verify(token, sessionSecret, { ignoreExpiration: true }, (err, decoded) => {
+            jwt.verify(token, sessionSecret, { ignoreExpiration: false }, (err, decoded) => {
                if (err) {
                   return reject(err)
                } else {
@@ -100,139 +104,149 @@ module.exports.start = function (options, startNextModule) {
       // Register services
       API.Services.registerFunction(verifyToken)
       API.Services.registerFunction(checkACL)
+
+      /*
+      websocket.use(function () {
+
+      })
+      */
+
+      /*
+      // check if route is protected
+      app.use(function (req, res, next) {
+         // Do not protect internal requests
+         var ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress
+         ip = ip.replace('::ffff:', '')
+
+         if (internalIpAddresses.indexOf(ip) < 0) {
+            for (var c in config.acl) {
+               if (req.url.match(new RegExp(c, 'g'))) {
+                  if (config.acl[c] !== false) { // protected
+                     // req._session
+                     // req._token
+
+                     // TODO
+                     // Check for roles for this route
+                     // if (decoded.roles.indexOf(config.acl[c]) < 0) {
+                     //    return res.status(403).json({
+                     //       success: false,
+                     //       message: 'Wrong permissions.'
+                     //    }, 403);
+                     // }
+
+                     // everything good
+                     next()
+                  } else { // no token => error
+                     next()
+
+                     // return res.status(403).json({
+                     //    success: false,
+                     //    message: 'No token provided.'
+                     // }, 403);
+                  }
+               } else { // unprotected
+                  next('route') // Skip token check and go to next route
+               }
+            }
+         } else { // internal
+            if (!config.acl) log.warning('No acls found in config! Nothing is protected!')
+            next('route') // Skip token check and go to next route
+         }
+      })
+      */
+
       // process the token
       app.use(function (req, res, next) {
          // check for token
          var token = req.body.token || req.query.token || req.headers['x-access-token']
 
          if (token) {
-            try {
-               getSession(token, res, function (session) {
-                  // make data accessible afterwards
-                  req._session = session
-                  req._token = token
-                  // TODO enable this when possible
-                  // verifyToken().then(decoded => {
-                  //    req._decoded = decoded;
-                  //    next()
-                  // }).catch(err => {
-                  //    log.error(`Bad token: ${err}`)
-                  // })
-                  next()
-               })
-            } catch (err) {
-               error()
-            }
-
+            req._token = token
+            async.waterfall([
+               function (callback) {
+                  verifyToken(token).then(decoded => {
+                     req._decoded = decoded
+                     req._tokenValid = true
+                     callback(null)
+                  }).catch(err => {
+                     log.error(`Bad token: ${err}`)
+                     req._decoded = null
+                     req._tokenValid = false
+                     callback(null)
+                  })
+               },
+               function (callback) {
+                  getSession(token, res)
+                     .then(function (session) {
+                        req._session = session
+                        callback(null)
+                     })
+                     .catch(function (err) {
+                        req._session = null
+                        callback(err)
+                     })
+               }
+            ], function (err, session) {
+               if (err) console.log(err)
+               next()
+            })
          // no token
          } else {
             next()
          }
 
-         function error () {
-            res.status(403).send('AuthenticateFailed')
-         }
+         function getSession (token, res) {
+            return new Promise((resolve, reject) => {
+               async.waterfall([
+                  loadFromCache,
+                  loadFromDB,
+                  saveToCache
+               ], function (err, session) {
+                  if (err) {
+                     reject(err)
+                  } else {
+                     resolve(session)
+                  }
+               })
 
+               function loadFromCache (callback) {
+                  // session with key "token" in cache?
+                  myCache.get(token, callback)
+               }
 
-         function getSession (token, res, next) {
-            // session with key "token" in cach?
-            myCache.get(token, function (err, session) {
-               if (err) {
-                  log.error('node-cache ', err)
-               } else {
-                  // not in cache => get from db and put in cache
-                  if (session === undefined || session === null) {
-                     db.user.sessions.findOne({
-                        'token': token
-                     })
+               function loadFromDB (session, callback) {
+                  // not in cache => get from db
+                  if (!session) {
+                     db.user.sessions
+                        .findOne({
+                           'token': token
+                        })
                         .populate({
                            path: 'user',
                            populate: {
                               path: 'account'
                            }
                         })
-                        .exec(function (err, doc) {
-                           if (err) log.critical(err)
-                           if (doc) {
-                              session = doc
-                              myCache.set(token, session, function (err, success) {
-                                 if (err) {
-                                    log.error('node-cache ', err)
-                                 } else {
-                                    // console.log("session from db", session);
-                                    next(session)
-                                 }
-                              })
-
-                           // no session found in db
+                        .exec(function (err, session) {
+                           if (err || !session) {
+                              callback(err || 'No session found!')
                            } else {
-                              error()
+                              callback(null, session)
                            }
                         })
-
-                     // return session from cache
                   } else {
-                     // console.log("session in cache", session);
-                     next(session)
+                     callback(null, session)
                   }
+               }
+
+               function saveToCache (session, callback) {
+                  // put in cache but do not wait for it
+                  myCache.set(token, session, function () {})
+                  callback(null, session)
                }
             })
          }
       })
-
-
-      // check if rout allowed
-      app.use(function (req, res, next) {
-         // Do not protect internal requests
-         var ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress
-         ip = ip.replace('::ffff:', '')
-
-         // console.log(req._session);
-
-         if (internalIpAddresses.indexOf(ip) < 0) {
-            if (!config.acl) {
-               log.warning('No acls found in config! Nothing is protected!')
-               next()
-            } else {
-               for (var c in config.acl) {
-                  if (req.url.match(new RegExp(c, 'g'))) {
-                     // protected
-                     if (config.acl[c] !== false) {
-                        // req._session
-                        // req._token
-
-                        // TODO
-                        // Check for roles for this route
-                        // if (decoded.roles.indexOf(config.acl[c]) < 0) {
-                        //    return res.status(403).json({
-                        //       success: false,
-                        //       message: 'Wrong permissions.'
-                        //    }, 403);
-                        // }
-
-                        // everything good
-                        next()
-                     } else { // no token => error
-                        next()
-
-                        // return res.status(403).json({
-                        //    success: false,
-                        //    message: 'No token provided.'
-                        // }, 403);
-                     }
-
-                  // unprotected
-                  } else {
-                     next()
-                  }
-               }
-            }
-         // internal
-         } else {
-            next()
-         }
-      })
-
 
       // provide the login url (no acl here)
       app.post('/basic-config', function (req, res) {
@@ -244,7 +258,6 @@ module.exports.start = function (options, startNextModule) {
          }
          res.status(200).send(basicInfo).end()
       })
-
 
       log.success('Session started')
       startNextModule()
