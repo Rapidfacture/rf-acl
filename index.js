@@ -111,50 +111,6 @@ module.exports.start = function (options, startNextModule) {
       })
       */
 
-      /*
-      // check if route is protected
-      app.use(function (req, res, next) {
-         // Do not protect internal requests
-         var ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress
-         ip = ip.replace('::ffff:', '')
-
-         if (internalIpAddresses.indexOf(ip) < 0) {
-            for (var c in config.acl) {
-               if (req.url.match(new RegExp(c, 'g'))) {
-                  if (config.acl[c] !== false) { // protected
-                     // req._session
-                     // req._token
-
-                     // TODO
-                     // Check for roles for this route
-                     // if (decoded.roles.indexOf(config.acl[c]) < 0) {
-                     //    return res.status(403).json({
-                     //       success: false,
-                     //       message: 'Wrong permissions.'
-                     //    }, 403);
-                     // }
-
-                     // everything good
-                     next()
-                  } else { // no token => error
-                     next()
-
-                     // return res.status(403).json({
-                     //    success: false,
-                     //    message: 'No token provided.'
-                     // }, 403);
-                  }
-               } else { // unprotected
-                  next('route') // Skip token check and go to next route
-               }
-            }
-         } else { // internal
-            if (!config.acl) log.warning('No acls found in config! Nothing is protected!')
-            next('route') // Skip token check and go to next route
-         }
-      })
-      */
-
       // process the token
       app.use(function (req, res, next) {
          // check for token
