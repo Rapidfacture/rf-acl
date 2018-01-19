@@ -78,10 +78,18 @@ module.exports.start = function (options, startNextModule) {
             })
          })
       }
+
+      /*
+      websocket.use(function () {
+
+      })
+      */
+
+
       /**
        * Check if the current token allows the ACL to take place
        * Returns a Promise that:
-       *    - resolves with userInfo if permitted
+       *    - resolves with an info object if permitted
        *    - rejects if not permitted
        *
        */
@@ -91,7 +99,15 @@ module.exports.start = function (options, startNextModule) {
             // TODO actually verify something. Currently this will accept in any case
             // NOTE: any exception will reject
             // if(acl.section == ...) {...} else {throw new Exception("Not authorized");}
-            return userInfo
+            const session = getSession(token)
+            return {
+               session: session,
+               token: token,
+               decoded: token,
+               tokenValid: true,
+               rights: session.rights,
+               user: session.user
+            }
          }).catch(err => {
             // If ACL is empty, this is not considered an error
             if (_.isEmpty(acl)) {
@@ -105,11 +121,57 @@ module.exports.start = function (options, startNextModule) {
       API.Services.registerFunction(verifyToken)
       API.Services.registerFunction(checkACL)
 
-      /*
-      websocket.use(function () {
+      function getSession (token, res = null) {
+         return new Promise((resolve, reject) => {
+            async.waterfall([
+               loadFromCache,
+               loadFromDB,
+               saveToCache
+            ], function (err, session) {
+               if (err) {
+                  reject(err)
+               } else {
+                  resolve(session)
+               }
+            })
 
-      })
-      */
+            function loadFromCache (callback) {
+               // session with key "token" in cache?
+               myCache.get(token, callback)
+            }
+
+            function loadFromDB (session, callback) {
+               // not in cache => get from db
+               if (!session) {
+                  db.user.sessions
+                     .findOne({
+                        'token': token
+                     })
+                     .populate({
+                        path: 'user',
+                        populate: {
+                           path: 'account'
+                        }
+                     })
+                     .exec(function (err, session) {
+                        if (err || !session) {
+                           callback(err || 'No session found!')
+                        } else {
+                           callback(null, session)
+                        }
+                     })
+               } else {
+                  callback(null, session)
+               }
+            }
+
+            function saveToCache (session, callback) {
+               // put in cache but do not wait for it
+               myCache.set(token, session, function () {})
+               callback(null, session)
+            }
+         })
+      }
 
       // process the token
       app.use(function (req, res, next) {
@@ -149,58 +211,6 @@ module.exports.start = function (options, startNextModule) {
          // no token
          } else {
             next()
-         }
-
-         function getSession (token, res) {
-            return new Promise((resolve, reject) => {
-               async.waterfall([
-                  loadFromCache,
-                  loadFromDB,
-                  saveToCache
-               ], function (err, session) {
-                  if (err) {
-                     reject(err)
-                  } else {
-                     resolve(session)
-                  }
-               })
-
-               function loadFromCache (callback) {
-                  // session with key "token" in cache?
-                  myCache.get(token, callback)
-               }
-
-               function loadFromDB (session, callback) {
-                  // not in cache => get from db
-                  if (!session) {
-                     db.user.sessions
-                        .findOne({
-                           'token': token
-                        })
-                        .populate({
-                           path: 'user',
-                           populate: {
-                              path: 'account'
-                           }
-                        })
-                        .exec(function (err, session) {
-                           if (err || !session) {
-                              callback(err || 'No session found!')
-                           } else {
-                              callback(null, session)
-                           }
-                        })
-                  } else {
-                     callback(null, session)
-                  }
-               }
-
-               function saveToCache (session, callback) {
-                  // put in cache but do not wait for it
-                  myCache.set(token, session, function () {})
-                  callback(null, session)
-               }
-            })
          }
       })
 
