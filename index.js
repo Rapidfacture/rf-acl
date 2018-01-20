@@ -21,17 +21,17 @@ var jwt = require('jsonwebtoken'),
    API = require('rf-load').require('rf-api').API,
 
 
-   _ = require('lodash')
+   _ = require('lodash');
 
 
 
 // get internal ip addresses for allowing internal requests
-var interfaces = os.networkInterfaces()
-var internalIpAddresses = []
+var interfaces = os.networkInterfaces();
+var internalIpAddresses = [];
 for (var k in interfaces) {
    for (var k2 in interfaces[k]) {
-      var address = interfaces[k][k2]
-      internalIpAddresses.push(address.address.replace('::ffff:', ''))
+      var address = interfaces[k][k2];
+      internalIpAddresses.push(address.address.replace('::ffff:', ''));
    }
 }
 
@@ -40,25 +40,25 @@ module.exports.start = function (options, startNextModule) {
    db.global.settings.findOne({
       name: 'sessionSecret'
    }, function (err, doc) {
-      var sessionSecret
-      if (err) log.critical(err)
+      var sessionSecret;
+      if (err) log.critical(err);
       if (doc && doc.settings && doc.settings.value) {
-         sessionSecret = doc.settings.value
+         sessionSecret = doc.settings.value;
       } else {
          // no secret => create one and put it in db (avalibale for other apps)
-         log.info("Couldn't load session secret, creating a new one")
-         sessionSecret = require('crypto').randomBytes(64).toString('hex')
+         log.info("Couldn't load session secret, creating a new one");
+         sessionSecret = require('crypto').randomBytes(64).toString('hex');
 
          db.global.mongooseConnection.collection('settings').insert({
             name: 'sessionSecret',
             settings: {
                value: sessionSecret
             }
-         })
+         });
       }
-      config.sessionSecret = sessionSecret // login function might need it
-      startACL(sessionSecret)
-   })
+      config.sessionSecret = sessionSecret; // login function might need it
+      startACL(sessionSecret);
+   });
 
 
    function startACL (sessionSecret) {
@@ -71,12 +71,12 @@ module.exports.start = function (options, startNextModule) {
          return new Promise((resolve, reject) => {
             jwt.verify(token, sessionSecret, { ignoreExpiration: false }, (err, decoded) => {
                if (err) {
-                  return reject(err)
+                  return reject(err);
                } else {
-                  return resolve(decoded)
+                  return resolve(decoded);
                }
-            })
-         })
+            });
+         });
       }
 
       /*
@@ -107,20 +107,20 @@ module.exports.start = function (options, startNextModule) {
                   tokenValid: true,
                   rights: session.rights,
                   user: session.user
-               }
-            })
+               };
+            });
          }).catch(err => {
             // If ACL is empty, this is not considered an error
             if (_.isEmpty(acl)) {
-               return {} // No error, return empty user object
+               return {}; // No error, return empty user object
             }
             // Else: This is an error, reject the promise
-            throw err
-         })
+            throw err;
+         });
       }
       // Register services
-      API.Services.registerFunction(verifyToken)
-      API.Services.registerFunction(checkACL)
+      API.Services.registerFunction(verifyToken);
+      API.Services.registerFunction(checkACL);
 
       function getSession (token, res = null) {
          return new Promise((resolve, reject) => {
@@ -130,15 +130,15 @@ module.exports.start = function (options, startNextModule) {
                saveToCache
             ], function (err, session) {
                if (err) {
-                  reject(err)
+                  reject(err);
                } else {
-                  resolve(session)
+                  resolve(session);
                }
-            })
+            });
 
             function loadFromCache (callback) {
                // session with key "token" in cache?
-               myCache.get(token, callback)
+               myCache.get(token, callback);
             }
 
             function loadFromDB (session, callback) {
@@ -156,77 +156,77 @@ module.exports.start = function (options, startNextModule) {
                      })
                      .exec(function (err, session) {
                         if (err || !session) {
-                           callback(err || 'No session found!')
+                           callback(err || 'No session found!');
                         } else {
-                           callback(null, session)
+                           callback(null, session);
                         }
-                     })
+                     });
                } else {
-                  callback(null, session)
+                  callback(null, session);
                }
             }
 
             function saveToCache (session, callback) {
                // put in cache but do not wait for it
-               myCache.set(token, session, function () {})
-               callback(null, session)
+               myCache.set(token, session, function () {});
+               callback(null, session);
             }
-         })
+         });
       }
 
       // process the token
       app.use(function (req, res, next) {
          // check for token
-         var token = req.body.token || req.query.token || req.headers['x-access-token']
+         var token = req.body.token || req.query.token || req.headers['x-access-token'];
 
          if (token) {
-            req._token = token
+            req._token = token;
             async.waterfall([
                function (callback) {
                   verifyToken(token).then(decoded => {
-                     req._decoded = decoded
-                     req._tokenValid = true
-                     callback(null)
+                     req._decoded = decoded;
+                     req._tokenValid = true;
+                     callback(null);
                   }).catch(err => {
-                     log.error(`Bad token: ${err}`)
-                     req._decoded = null
-                     req._tokenValid = false
-                     callback(null)
-                  })
+                     log.error(`Bad token: ${err}`);
+                     req._decoded = null;
+                     req._tokenValid = false;
+                     callback(null);
+                  });
                },
                function (callback) {
                   getSession(token, res)
                      .then(function (session) {
-                        req._session = session
-                        callback(null)
+                        req._session = session;
+                        callback(null);
                      })
                      .catch(function (err) {
-                        req._session = null
-                        callback(err)
-                     })
+                        req._session = null;
+                        callback(err);
+                     });
                }
             ], function (err, session) {
-               if (err) console.log(err)
-               next()
-            })
+               if (err) console.log(err);
+               next();
+            });
          // no token
          } else {
-            next()
+            next();
          }
-      })
+      });
 
       // provide the login url (no acl here)
       app.post('/basic-config', function (req, res) {
-         var loginUrls = config.global.apps.login.urls
+         var loginUrls = config.global.apps.login.urls;
          var basicInfo = {
             app: config.app,
             loginUrl: loginUrls.main + loginUrls.login,
             loginMainUrl: loginUrls.main
-         }
-         res.status(200).send(basicInfo).end()
-      })
+         };
+         res.status(200).send(basicInfo).end();
+      });
 
-      log.success('Session started')
-      startNextModule()
+      log.success('Session started');
+      startNextModule();
    }
-}
+};
