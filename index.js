@@ -99,15 +99,16 @@ module.exports.start = function (options, startNextModule) {
             // TODO actually verify something. Currently this will accept in any case
             // NOTE: any exception will reject
             // if(acl.section == ...) {...} else {throw new Exception("Not authorized");}
-            const session = getSession(token)
-            return {
-               session: session,
-               token: token,
-               decoded: token,
-               tokenValid: true,
-               rights: session.rights,
-               user: session.user
-            }
+            return getSession(token).then(session => {
+               return {
+                  session: session,
+                  token: token,
+                  decoded: token,
+                  tokenValid: true,
+                  rights: session.rights,
+                  user: session.user
+               }
+            })
          }).catch(err => {
             // If ACL is empty, this is not considered an error
             if (_.isEmpty(acl)) {
