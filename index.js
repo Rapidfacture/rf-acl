@@ -95,7 +95,7 @@ module.exports.start = function (options, startNextModule) {
        */
       function checkACL (token, acl) {
          // TODO proper implementation
-         return verifyToken(token).then(userInfo => {
+         return verifyToken(token).then(decodedToken => {
             // TODO actually verify something. Currently this will accept in any case
             // NOTE: any exception will reject
             // if(acl.section == ...) {...} else {throw new Exception("Not authorized");}
@@ -103,7 +103,7 @@ module.exports.start = function (options, startNextModule) {
                return {
                   session: session,
                   token: token,
-                  decoded: token,
+                  decoded: decodedToken,
                   tokenValid: true,
                   rights: session.rights,
                   user: session.user
