@@ -68,6 +68,11 @@ module.exports.start = function (options, startNextModule) {
        * Verify if a given token is correct in the current context
        */
       function verifyToken (token) {
+         // Prevent unreadable jwt must be provided
+         if (_.isNil(token) || token === '') {
+            return Promise.reject(new Error('Token is null, undefined or empty'));
+         }
+         // Actually process token
          return new Promise((resolve, reject) => {
             jwt.verify(token, sessionSecret, { ignoreExpiration: false }, (err, decoded) => {
                if (err) {
