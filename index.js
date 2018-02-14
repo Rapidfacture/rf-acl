@@ -225,7 +225,7 @@ module.exports.start = function (options, startNextModule) {
 
       // provide the login url (no acl here)
       app.post('/basic-config', function (req, res) {
-         var loginUrls = config.global.apps['rf-app-login'].urls
+         var loginUrls = config.global.apps['rf-app-login'].urls;
          var basicInfo = {
             app: config.app,
             loginUrl: loginUrls.main + loginUrls.login,
