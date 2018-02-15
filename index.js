@@ -156,10 +156,7 @@ module.exports.start = function (options, startNextModule) {
                      .populate({
                         path: 'user',
                         populate: {
-                           path: 'account',
-                           populate: {
-                              path: 'addresses'
-                           }
+                           path: 'account'
                         }
                      })
                      .exec(function (err, session) {
