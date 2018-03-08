@@ -14,7 +14,6 @@ var jwt = require('jsonwebtoken'),
    }),
    os = require('os'),
    config = require('rf-config'),
-   log = require('rf-log'),
    db = require('rf-load').require('db').db,
    app = require('rf-load').require('http').app,
    // websocket = require('rf-load').require('websocket').IO,
@@ -24,16 +23,19 @@ var jwt = require('jsonwebtoken'),
    _ = require('lodash');
 
 
-
-// get internal ip addresses for allowing internal requests
-var interfaces = os.networkInterfaces();
-var internalIpAddresses = [];
-for (var k in interfaces) {
-   for (var k2 in interfaces[k]) {
-      var address = interfaces[k][k2];
-      internalIpAddresses.push(address.address.replace('::ffff:', ''));
+   // logging
+var log = {
+   success: console.log,
+   error: console.error,
+   critical: function () {
+      throw new Error(console.error.apply(arguments));
    }
-}
+};
+try { // try using rf-log
+   log = require(require.resolve('rf-log')).customPrefixLogger('[rf-api-mailer]');
+} catch (e) {}
+
+
 
 module.exports.start = function (options, startNextModule) {
    // get session secret from db

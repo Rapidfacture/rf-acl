@@ -23,7 +23,6 @@
    },
    "peerDependencies": {
       "rf-config": "0.1.14",
-      "rf-log": "0.1.4",
       "rf-api": "0.0.12",
       "rf-load": "0.1.10"
    },
