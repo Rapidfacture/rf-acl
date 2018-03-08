@@ -12,7 +12,6 @@ var jwt = require('jsonwebtoken'),
       stdTTL: 1000,
       checkperiod: 250
    }),
-   os = require('os'),
    config = require('rf-config'),
    db = require('rf-load').require('db').db,
    app = require('rf-load').require('http').app,
@@ -25,6 +24,7 @@ var jwt = require('jsonwebtoken'),
 
    // logging
 var log = {
+   info: console.log,
    success: console.log,
    error: console.error,
    critical: function () {
@@ -213,7 +213,7 @@ module.exports.start = function (options, startNextModule) {
                      });
                }
             ], function (err, session) {
-               if (err) console.log(err);
+               if (err) log.error(err);
                next();
             });
          // no token
