@@ -13,12 +13,6 @@ var jwt = require('jsonwebtoken'),
       checkperiod: 250
    }),
    config = require('rf-config'),
-   db = require('rf-load').require('db').db,
-   app = require('rf-load').require('http').app,
-   // websocket = require('rf-load').require('websocket').IO,
-   API = require('rf-load').require('rf-api').API,
-
-
    _ = require('lodash');
 
 
@@ -38,6 +32,13 @@ try { // try using rf-log
 
 
 module.exports.start = function (options, startNextModule) {
+
+   options = options || {};
+   var API = options.API || require('rf-load').require('rf-api').API;
+   var db = options.db || require('rf-load').require('db').db;
+   var app = options.app || require('rf-load').require('http').app;
+
+
    // get session secret from db
    db.global.settings.findOne({
       name: 'sessionSecret'
