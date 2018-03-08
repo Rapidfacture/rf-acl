@@ -26,7 +26,7 @@ var log = {
    }
 };
 try { // try using rf-log
-   log = require(require.resolve('rf-log')).customPrefixLogger('[rf-api-mailer]');
+   log = require(require.resolve('rf-log')).customPrefixLogger('[rf-api-acl]');
 } catch (e) {}
 
 
