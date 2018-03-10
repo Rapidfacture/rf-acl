@@ -31,7 +31,7 @@ try { // try using rf-log
 
 
 
-module.exports.start = function (options, startNextModule) {
+module.exports.start = function (options, next) {
 
    options = options || {};
    var API = options.API || require('rf-load').require('rf-api').API;
@@ -229,6 +229,7 @@ module.exports.start = function (options, startNextModule) {
       });
 
       log.success('Session started');
-      startNextModule();
+
+      if (next) next();
    }
 };
