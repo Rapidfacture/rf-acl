@@ -22,9 +22,7 @@
     "jsonwebtoken": "5.0.5"
   },
   "peerDependencies": {
-    "rf-config": "0.1.14",
-    "rf-api": "0.0.12",
-    "rf-load": "0.1.10"
+    "rf-config": "^0.1.14"
   },
   "devDependencies": {
     "grunt": "1.0.1",
