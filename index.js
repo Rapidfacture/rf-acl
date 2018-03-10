@@ -156,12 +156,6 @@ module.exports.start = function (options, startNextModule) {
                      .findOne({
                         'token': token
                      })
-                     .populate({
-                        path: 'user',
-                        populate: {
-                           path: 'account'
-                        }
-                     })
                      .exec(function (err, session) {
                         if (err || !session) {
                            callback(err || 'No session found!');
