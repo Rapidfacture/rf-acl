@@ -1,34 +1,36 @@
 {
-   "name": "rf-acl",
-   "version": "0.2.2",
-   "description": "Express middleware for acl based on tokens for Rapidfacture apps. Session and Session Secret from Db.",
-   "author": {
-      "name": "Felix Furtmayr"
-   },
-   "license": "MIT",
-   "repository": {
-      "type": "git",
-      "url": "git@github.com:RAPIDFACTURE/rf-acl.git"
-   },
-   "maintainers": [{
+  "name": "rf-acl",
+  "version": "0.3.0",
+  "description": "Express middleware for acl based on tokens for Rapidfacture apps. Session and Session Secret from Db.",
+  "author": {
+    "name": "Felix Furtmayr"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:RAPIDFACTURE/rf-acl.git"
+  },
+  "maintainers": [
+    {
       "name": "felix_furtmayr",
       "email": "ff@rapidfacture.com"
-   }],
-   "main": "index.js",
-   "dependencies": {
-      "async": "2.6.0",
-      "node-cache": "4.1.1",
-      "jsonwebtoken": "5.0.5"
-   },
-   "peerDependencies": {
-      "rf-config": "^0.1.14"
-   },
-   "devDependencies": {
-      "grunt": "1.0.1",
-      "grunt-eslint": "20.1.0"
-   },
-   "scripts": {
-      "prepublishOnly": "npm test",
-      "test": "grunt"
-   }
+    }
+  ],
+  "main": "index.js",
+  "dependencies": {
+    "async": "2.6.0",
+    "node-cache": "4.1.1",
+    "jsonwebtoken": "5.0.5"
+  },
+  "peerDependencies": {
+    "rf-config": "^0.1.14"
+  },
+  "devDependencies": {
+    "grunt": "1.0.1",
+    "grunt-eslint": "20.1.0"
+  },
+  "scripts": {
+    "prepublishOnly": "npm test",
+    "test": "grunt"
+  }
 }
