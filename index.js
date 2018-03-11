@@ -33,35 +33,18 @@ try { // try using rf-log
 
 module.exports.start = function (options, next) {
 
-   options = options || {};
-   var API = options.API || require('rf-load').require('rf-api').API;
-   var db = options.db || require('rf-load').require('db').db;
-   var app = options.app || require('rf-load').require('http').app;
+   if (!options) log.critical('"options" is undefined');
+   if (!options.API) log.critical('"options.API" is undefined');
+   if (!options.sessionSecret) log.critical('"options.sessionSecret" is undefined');
+   if (!options.app) log.critical('"options.app" is undefined');
+   if (!options.db) log.critical('"options.db" is undefined');
 
+   var API = options.API;
+   var sessionSecret = options.sessionSecret;
+   var app = options.app;
+   var db = options.db;
 
-   // get session secret from db
-   db.global.settings.findOne({
-      name: 'sessionSecret'
-   }, function (err, doc) {
-      var sessionSecret;
-      if (err) log.critical(err);
-      if (doc && doc.settings && doc.settings.value) {
-         sessionSecret = doc.settings.value;
-      } else {
-         // no secret => create one and put it in db (avalibale for other apps)
-         log.info("Couldn't load session secret, creating a new one");
-         sessionSecret = require('crypto').randomBytes(64).toString('hex');
-
-         db.global.mongooseConnection.collection('settings').insert({
-            name: 'sessionSecret',
-            settings: {
-               value: sessionSecret
-            }
-         });
-      }
-      config.sessionSecret = sessionSecret; // login function might need it
-      startACL(sessionSecret);
-   });
+   startACL(sessionSecret);
 
 
    function startACL (sessionSecret) {
