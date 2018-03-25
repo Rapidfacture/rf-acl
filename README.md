@@ -1,10 +1,9 @@
 # rf-acl
 
-* ACL Module for Rapidfacture Apps
-* beware: in Alpha!
-* started via rf-load module Loader; needs also other rf-modules as peer Dependencies
-* fetches session secret from db or creates one
+ACL Module for Rapidfacture Apps
+* fetches session secret from db
 * fetches session (user, groups, right) of the users and stores them in memory
+* provide "basic-config" Acess Point
 
 
 
@@ -14,29 +13,41 @@
 
 
 ```js
-var Loader = require('rf-load').moduleLoader
-var load = new Loader()
-load.setModulePath(config.paths.modules)
 
-// load db, start webserver (required for the ACL)
-load.file('db')
-load.file('http')
+// prepare backend
+var config = require('rf-config').init(__dirname); // config
+var http = require('rf-http').start({ // webserver
+   pathsWebserver: config.paths.webserver,
+   port: config.port
+});
+var API = require('rf-api').start({app: http.app}); // prepare api
+var mongooseMulti = require('mongoose-multi'); // databases
+var db = mongooseMulti.start(config.db.urls, config.paths.schemas);
 
 
-// load access control module
-load.module('rf-acl')
+// fetch settings from db
+db.global.mongooseConnection.once('open', function () {
+
+   // start access control
+   require('rf-acl').start({
+      API: API, // rf-api
+      db: db, // mongooseMulti
+      app: http.app, // express app
+      sessionSecret: 'dsafdknewr324324erd3uidecd'
+   });
+
+   // start requests
+   API.startApiFiles(config.paths.apis, function (startApi) {
+      startApi(db, API);
+   });
+});
 
 
-// load further module like the request API ...
 ```
 
 
 ## Peer Dependencies
-* rf-log
 * rf-config
-* rf-load
-
-Database for rapidfacture apps + express module
 
 
 ## Development
