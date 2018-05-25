@@ -206,7 +206,8 @@ module.exports.start = function (options, next) {
          var basicInfo = {
             app: config.app,
             loginUrl: loginUrls.main + loginUrls.login,
-            loginMainUrl: loginUrls.main
+            loginMainUrl: loginUrls.main,
+            termsAndPolicyLink: loginUrls.termsAndPolicyLink
          };
          res.status(200).send(basicInfo).end();
       });
