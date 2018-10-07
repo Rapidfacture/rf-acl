@@ -78,6 +78,8 @@ module.exports.start = function (options, next) {
 
 
       /**
+       * NOTE: this function is used by rf-api-websocket only
+       *
        * Check if the current token allows the ACL to take place
        * Returns a Promise that:
        *    - resolves with an info object if permitted
@@ -90,11 +92,15 @@ module.exports.start = function (options, next) {
             // TODO actually verify something. Currently this will accept in any case
             // NOTE: any exception will reject
             // if(acl.section == ...) {...} else {throw new Exception("Not authorized");}
-
             return getSession(token).then(session => {
-               return getBasicConfig(token, function (basicConfig) {
-                  return basicConfig;
-               });
+               return {
+                  session: session,
+                  token: token,
+                  decoded: decodedToken,
+                  tokenValid: true,
+                  rights: session.rights,
+                  user: session.user
+               };
             });
          }).catch(err => {
             // If ACL is empty, this is not considered an error
