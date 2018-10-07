@@ -90,15 +90,11 @@ module.exports.start = function (options, next) {
             // TODO actually verify something. Currently this will accept in any case
             // NOTE: any exception will reject
             // if(acl.section == ...) {...} else {throw new Exception("Not authorized");}
+
             return getSession(token).then(session => {
-               return {
-                  session: session,
-                  token: token,
-                  decoded: decodedToken,
-                  tokenValid: true,
-                  rights: session.rights,
-                  user: session.user
-               };
+               return getBasicConfig(token, function (basicConfig) {
+                  return basicConfig;
+               });
             });
          }).catch(err => {
             // If ACL is empty, this is not considered an error
@@ -200,6 +196,42 @@ module.exports.start = function (options, next) {
          }
       });
 
+      function getBasicConfig (token, callback) {
+         var loginUrls = config.global.apps['rf-app-login'].urls;
+         var basicInfo = {
+            app: config.app,
+            loginUrl: loginUrls.main + loginUrls.login,
+            loginMainUrl: loginUrls.main,
+            termsAndPolicyLink: loginUrls.termsAndPolicyLink
+         };
+
+         // console.log('req.body', req.body);
+
+         if (token) {
+            return getSession(token)
+               .then(function (session) {
+
+                  session = session.toObject();
+
+                  delete session.browserInfo; // only interesting for statistic, no need in client
+                  delete session.groups; // groups should not be passed
+                  delete session.user.groups; // groups should not be passed
+
+                  for (var key in session) {
+                     basicInfo[key] = session[key];
+                  }
+                  // console.log('basicInfo after session get', basicInfo);
+                  callback(basicInfo);
+               })
+               .catch(function (err) {
+                  log.error(err);
+                  callback(basicInfo);
+               });
+         } else {
+            return callback(basicInfo);
+         }
+      }
+
       /** /basic-config
        *
        * provide the frontend config
@@ -213,49 +245,15 @@ module.exports.start = function (options, next) {
        */
       app.post('/basic-config', function (req, res) {
          // console.log('/basic-config');
-
-         var loginUrls = config.global.apps['rf-app-login'].urls;
-         var basicInfo = {
-            app: config.app,
-            loginUrl: loginUrls.main + loginUrls.login,
-            loginMainUrl: loginUrls.main,
-            termsAndPolicyLink: loginUrls.termsAndPolicyLink
-         };
-
-         // console.log('req.body', req.body);
-
-         if (req.body && req.body.token) {
-            getSession(req.body.token)
-               .then(function (session) {
-
-                  session = session.toObject();
-
-                  delete session.browserInfo; // only interesting for statistic, no need in client
-                  delete session.groups; // groups should not be passed
-                  delete session.user.groups; // groups should not be passed
-
-                  for (var key in session) {
-                     basicInfo[key] = session[key];
-                  }
-                  // console.log('basicInfo after session get', basicInfo);
-                  answer(basicInfo);
-               })
-               .catch(function (err) {
-                  log.error(err);
-                  answer(basicInfo);
-               });
-         } else {
-            answer(basicInfo);
-         }
-
-         function answer (data) {
-            res.status(200).send(data).end();
-         }
-
+         var token = (req.body && req.body.token) ? req.body.token : null;
+         getBasicConfig(token, function (basicConfig) {
+            res.status(200).send(basicConfig).end();
+         });
       });
 
       log.success('Session started');
 
       if (next) next();
    }
+
 };
