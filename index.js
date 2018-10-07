@@ -200,8 +200,20 @@ module.exports.start = function (options, next) {
          }
       });
 
-      // provide the login url (no acl here)
+      /** /basic-config
+       *
+       * provide the frontend config
+       *
+       * # info without token:
+       * login url
+       * app information
+       *
+       * # info with token
+       * data from session
+       */
       app.post('/basic-config', function (req, res) {
+         // console.log('/basic-config');
+
          var loginUrls = config.global.apps['rf-app-login'].urls;
          var basicInfo = {
             app: config.app,
@@ -209,7 +221,37 @@ module.exports.start = function (options, next) {
             loginMainUrl: loginUrls.main,
             termsAndPolicyLink: loginUrls.termsAndPolicyLink
          };
-         res.status(200).send(basicInfo).end();
+
+         // console.log('req.body', req.body);
+
+         if (req.body && req.body.token) {
+            getSession(req.body.token)
+               .then(function (session) {
+
+                  session = session.toObject();
+
+                  delete session.browserInfo; // only interesting for statistic, no need in client
+                  delete session.groups; // groups should not be passed
+                  delete session.user.groups; // groups should not be passed
+
+                  for (var key in session) {
+                     basicInfo[key] = session[key];
+                  }
+                  // console.log('basicInfo after session get', basicInfo);
+                  answer(basicInfo);
+               })
+               .catch(function (err) {
+                  log.error(err);
+                  answer(basicInfo);
+               });
+         } else {
+            answer(basicInfo);
+         }
+
+         function answer (data) {
+            res.status(200).send(data).end();
+         }
+
       });
 
       log.success('Session started');
