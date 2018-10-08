@@ -9,8 +9,8 @@ var jwt = require('jsonwebtoken'),
    async = require('async'),
    NodeCache = require('node-cache'),
    myCache = new NodeCache({
-      stdTTL: 1000,
-      checkperiod: 250
+      stdTTL: 10,
+      checkperiod: 4
    }),
    config = require('rf-config'),
    _ = require('lodash');
