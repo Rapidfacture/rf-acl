@@ -1,6 +1,6 @@
 {
   "name": "rf-acl",
-  "version": "0.4.2",
+  "version": "0.4.3",
   "description": "Express middleware for acl based on tokens for Rapidfacture apps. Session and Session Secret from Db.",
   "author": {
     "name": "Felix Furtmayr"
