@@ -193,8 +193,12 @@ module.exports.start = function (options, next) {
                      });
                }
             ], function (err, session) {
-               if (err) log.error(err);
-               next();
+               if (err) {
+                  log.error(err);
+                  res.status(401).send(err); // send unauthorized error
+               } else {
+                  next();
+               }
             });
          // no token
          } else {
