@@ -163,6 +163,10 @@ module.exports.start = function (options, next) {
 
       // process the token
       app.use(function (req, res, next) {
+
+         // do not protect endpoint /basic-config
+         if (req.originalUrl === '/basic-config') return next();
+
          // check for token
          var token = req.body.token || req.query.token || req.headers['x-access-token'];
 
@@ -193,12 +197,8 @@ module.exports.start = function (options, next) {
                      });
                }
             ], function (err, session) {
-               if (err) {
-                  log.error(err);
-                  res.status(401).send(err); // send unauthorized error
-               } else {
-                  next();
-               }
+               if (err) log.error(err);
+               next();
             });
          // no token
          } else {
