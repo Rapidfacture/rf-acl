@@ -206,7 +206,9 @@ module.exports.start = function (options, next) {
          }
       });
 
-      function getBasicConfig (token, callback) {
+
+
+      function getBasicConfig (token, mainCallback) {
          var loginUrls = config.global.apps['rf-app-login'].urls;
          var basicInfo = {
             app: config.app,
@@ -218,27 +220,43 @@ module.exports.start = function (options, next) {
          // console.log('req.body', req.body);
 
          if (token) {
-            return getSession(token)
-               .then(function (session) {
+            async.waterfall([
+               function (callback) {
+                  verifyToken(token).then(decoded => {
+                     callback(null);
+                  }).catch(err => {
+                     // verify error => important; refresh needed
+                     log.error(`Bad token: ${err}`);
+                     callback(err);
+                  });
+               },
+               function (callback) {
+                  getSession(token)
+                     .then(function (session) {
+                        session = session.toObject();
 
-                  session = session.toObject();
+                        delete session.browserInfo; // only interesting for statistic, no need in client
+                        delete session.groups; // groups should not be passed
+                        delete session.user.groups; // groups should not be passed
 
-                  delete session.browserInfo; // only interesting for statistic, no need in client
-                  delete session.groups; // groups should not be passed
-                  delete session.user.groups; // groups should not be passed
+                        for (var key in session) {
+                           basicInfo[key] = session[key];
+                        }
+                        // console.log('basicInfo after session get', basicInfo);
+                        callback(null, basicInfo);
+                     })
+                     .catch(function (err) {
+                        log.error(err);
+                        // ignore if no session is found, still return basicconfig
+                        callback(null, basicInfo);
+                     });
+               }
+            ], function (err, session) {
+               mainCallback(err, session);
+            });
 
-                  for (var key in session) {
-                     basicInfo[key] = session[key];
-                  }
-                  // console.log('basicInfo after session get', basicInfo);
-                  callback(basicInfo);
-               })
-               .catch(function (err) {
-                  log.error(err);
-                  callback(basicInfo);
-               });
          } else {
-            return callback(basicInfo);
+            return mainCallback(null, basicInfo);
          }
       }
 
@@ -256,8 +274,14 @@ module.exports.start = function (options, next) {
       app.post('/basic-config', function (req, res) {
          // console.log('/basic-config');
          var token = (req.body && req.body.token) ? req.body.token : null;
-         getBasicConfig(token, function (basicConfig) {
-            res.status(200).send(basicConfig).end();
+         getBasicConfig(token, function (err, basicConfig) {
+            if (err) {
+               basicConfig.err = err;
+               res.status(400).send(basicConfig).end();
+            } else {
+               res.status(200).send(basicConfig).end();
+            }
+
          });
       });
 
