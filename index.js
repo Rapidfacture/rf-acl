@@ -252,7 +252,7 @@ module.exports.start = function (options, next) {
                      });
                }
             ], function (err, session) {
-               mainCallback(err, session);
+               mainCallback(err, basicInfo);
             });
 
          } else {
