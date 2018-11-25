@@ -77,44 +77,6 @@ module.exports.start = function (options, next) {
       */
 
 
-      /**
-       * NOTE: this function is used by rf-api-websocket only
-       *
-       * Check if the current token allows the ACL to take place
-       * Returns a Promise that:
-       *    - resolves with an info object if permitted
-       *    - rejects if not permitted
-       *
-       */
-      function checkACL (token, acl) {
-         // TODO proper implementation
-         return verifyToken(token).then(decodedToken => {
-            // TODO actually verify something. Currently this will accept in any case
-            // NOTE: any exception will reject
-            // if(acl.section == ...) {...} else {throw new Exception("Not authorized");}
-            return getSession(token).then(session => {
-               return {
-                  session: session,
-                  token: token,
-                  decoded: decodedToken,
-                  tokenValid: true,
-                  rights: session.rights,
-                  user: session.user
-               };
-            });
-         }).catch(err => {
-            // If ACL is empty, this is not considered an error
-            if (_.isEmpty(acl)) {
-               return {}; // No error, return empty user object
-            }
-            // Else: This is an error, reject the promise
-            throw err;
-         });
-      }
-      // Register services
-      API.Services.registerFunction(verifyToken);
-      API.Services.registerFunction(checkACL);
-
       function getSession (token, res = null) {
          return new Promise((resolve, reject) => {
             async.waterfall([
@@ -161,6 +123,126 @@ module.exports.start = function (options, next) {
          });
       }
 
+
+      function verifyTokenAndGetSession (token, mainCallback) {
+         verifyToken(token).then(decoded => {
+            getSession(token)
+               .then(function (session) {
+                  session = session.toObject();
+                  delete session.browserInfo; // only interesting for statistic, no need in client
+                  delete session.groups; // groups should not be passed
+                  delete session.user.groups; // groups should not be passed
+                  mainCallback({err: null, decoded: decoded, session: session});
+               })
+               .catch(function (err) {
+                  log.error(err);
+                  mainCallback({err: err, decoded: decoded});
+               });
+         }).catch(err => {
+            // verify error
+            log.error(`Bad token: ${err}`);
+            mainCallback({err: err});
+         });
+      }
+
+
+      function processRequest (settings, req, callback) {
+
+         // protection => no one misses to add the protection explicit
+         if (!settings || !settings.section) {
+            return callback({
+               message: 'No settings defined! Protected by default',
+               code: 403
+            });
+         }
+
+         // token is invalid?
+         if (!req.tokenValid) {
+            // is there a token?
+            return callback({
+               message: req.token ? 'Access denied! Token expired!' : 'Access denied! Token missing!',
+               code: 401
+            });
+         }
+
+         // unprotected route?
+         if (settings.permission === false) {
+            return callback(null, req);
+         }
+
+         // has user app config rights?
+         if (!req.rights || !req.rights.hasOwnProperty(config.app.name)) {
+            return callback({
+               message: 'Access denied!',
+               code: 403
+            });
+         }
+
+         var rights = req.rights[config.app.name];
+
+         if (!rights.hasOwnProperty(settings.section)) {
+            return callback({
+               message: `Access denied! Section not found in rights: ${settings.section}`,
+               code: 403
+            });
+         } else { // set section rights to request
+            req.sectionRights = rights[settings.section];
+         }
+
+         var requiredPermission = (req.originalRequest.method === 'GET' ? 'read' : 'write');
+         if (!rights[settings.section].hasOwnProperty(requiredPermission) ||
+               rights[settings.section][requiredPermission] === false ||
+               rights[settings.section][requiredPermission].length <= 0) {
+            return callback({
+               message: 'Access denied! Insufficient permissions!',
+               code: 403
+            });
+         }
+
+         callback(null, req);
+      }
+
+
+
+      // Register services
+      API.Services.registerFunction(verifyToken);
+      API.Services.registerFunction(checkACL);
+      API.Services.registerFunction(verifyTokenAndGetSession);
+
+      /**
+       * NOTE: this function is used by rf-api-websocket only
+       *
+       * Check if the current token allows the ACL to take place
+       * Returns a Promise that:
+       *    - resolves with an info object if permitted
+       *    - rejects if not permitted
+       *
+       */
+      function checkACL (token, acl) {
+         return verifyTokenAndGetSession(token, function (settings) {
+            if (settings.err || !settings.decoded || !settings.session) {
+               if (settings.err) log.error(settings.err);
+               if (acl.section && acl.permission === false) {
+                  return {}; // No error, return empty user object
+               } else {
+                  throw settings.err;
+               }
+            } else {
+               return {
+                  session: settings.session,
+                  token: token,
+                  decoded: settings.decoded,
+                  tokenValid: true,
+                  rights: settings.session.rights,
+                  user: settings.session.user
+               };
+            }
+         });
+      }
+
+
+      // TODO: move the following functions into rf-api:
+
       // process the token
       app.use(function (req, res, next) {
 
@@ -172,32 +254,11 @@ module.exports.start = function (options, next) {
 
          if (token) {
             req._token = token;
-            async.waterfall([
-               function (callback) {
-                  verifyToken(token).then(decoded => {
-                     req._decoded = decoded;
-                     req._tokenValid = true;
-                     callback(null);
-                  }).catch(err => {
-                     log.error(`Bad token: ${err}`);
-                     req._decoded = null;
-                     req._tokenValid = false;
-                     callback(null);
-                  });
-               },
-               function (callback) {
-                  getSession(token, res)
-                     .then(function (session) {
-                        req._session = session;
-                        callback(null);
-                     })
-                     .catch(function (err) {
-                        req._session = null;
-                        callback(err);
-                     });
-               }
-            ], function (err, session) {
-               if (err) log.error(err);
+            verifyTokenAndGetSession(token, function (settings) {
+               if (settings.err) log.error(settings.err);
+               req._decoded = settings.decoded ? settings.decoded : null;
+               req._tokenValid = !!settings.decoded;
+               req._session = settings.session ? settings.session : null;
                next();
             });
          // no token
@@ -206,59 +267,6 @@ module.exports.start = function (options, next) {
          }
       });
 
-
-
-      function getBasicConfig (token, mainCallback) {
-         var loginUrls = config.global.apps['rf-app-login'].urls;
-         var basicInfo = {
-            app: config.app,
-            loginUrl: loginUrls.main + loginUrls.login,
-            loginMainUrl: loginUrls.main,
-            termsAndPolicyLink: loginUrls.termsAndPolicyLink
-         };
-
-         // console.log('req.body', req.body);
-
-         if (token) {
-            async.waterfall([
-               function (callback) {
-                  verifyToken(token).then(decoded => {
-                     callback(null);
-                  }).catch(err => {
-                     // verify error => important; refresh needed
-                     log.error(`Bad token: ${err}`);
-                     callback(err);
-                  });
-               },
-               function (callback) {
-                  getSession(token)
-                     .then(function (session) {
-                        session = session.toObject();
-
-                        delete session.browserInfo; // only interesting for statistic, no need in client
-                        delete session.groups; // groups should not be passed
-                        delete session.user.groups; // groups should not be passed
-
-                        for (var key in session) {
-                           basicInfo[key] = session[key];
-                        }
-                        // console.log('basicInfo after session get', basicInfo);
-                        callback(null, basicInfo);
-                     })
-                     .catch(function (err) {
-                        log.error(err);
-                        // ignore if no session is found, still return basicconfig
-                        callback(null, basicInfo);
-                     });
-               }
-            ], function (err, session) {
-               mainCallback(err, basicInfo);
-            });
-
-         } else {
-            return mainCallback(null, basicInfo);
-         }
-      }
 
       /** /basic-config
        *
@@ -284,6 +292,32 @@ module.exports.start = function (options, next) {
 
          });
       });
+
+      function getBasicConfig (token, mainCallback) {
+         var loginUrls = config.global.apps['rf-app-login'].urls;
+         var basicInfo = {
+            app: config.app,
+            loginUrl: loginUrls.main + loginUrls.login,
+            loginMainUrl: loginUrls.main,
+            termsAndPolicyLink: loginUrls.termsAndPolicyLink
+         };
+         // console.log('req.body', req.body);
+
+         if (token) {
+            verifyTokenAndGetSession(token, function (settings) {
+               if (settings.err) log.error(settings.err);
+               if (settings.session) {
+                  for (var key in settings.session) {
+                     basicInfo[key] = settings.session[key];
+                  }
+               }
+               mainCallback(null, basicInfo);
+            });
+         } else {
+            return mainCallback(null, basicInfo);
+         }
+      }
+
 
       log.success('Session started');
 
