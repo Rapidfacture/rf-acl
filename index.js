@@ -104,7 +104,7 @@ module.exports.start = function (options, next) {
             });
          }).catch(err => {
             // If ACL is empty, this is not considered an error
-            if (_.isEmpty(acl)) {
+            if (acl.section && acl.permission === false) {
                return {}; // No error, return empty user object
             }
             // Else: This is an error, reject the promise
