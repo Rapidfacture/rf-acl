@@ -227,7 +227,7 @@ module.exports.start = function (options, next) {
                   }).catch(err => {
                      // verify error => important; refresh needed
                      log.error(`Bad token: ${err}`);
-                     callback(err);
+                     callback(err, basicInfo);
                   });
                },
                function (callback) {
