@@ -207,7 +207,7 @@ module.exports.start = function (options, next) {
       });
 
 
- 
+
       function getBasicConfig (token, mainCallback) {
          var loginUrls = config.global.apps['rf-app-erp'].urls;
          var basicInfo = {
