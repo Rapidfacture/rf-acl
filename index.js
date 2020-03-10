@@ -217,6 +217,7 @@ module.exports.start = function (options, next) {
             termsAndPolicyLink: loginUrls.termsAndPolicyLink
          };
 
+         if (options.hasLogin) basicInfo.hasLogin = true;
          // console.log('req.body', req.body);
 
          if (token) {
