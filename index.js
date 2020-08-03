@@ -212,6 +212,7 @@ module.exports.start = function (options, next) {
          var loginUrls = config.global.apps['rf-app-erp'].urls;
          var basicInfo = {
             app: config.app,
+            environment: options.environment,
             loginUrl: loginUrls.main + loginUrls.login,
             loginMainUrl: loginUrls.main,
             termsAndPolicyLink: loginUrls.termsAndPolicyLink
