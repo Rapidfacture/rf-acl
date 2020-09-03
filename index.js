@@ -209,10 +209,14 @@ module.exports.start = function (options, next) {
 
 
       function getBasicConfig (token, mainCallback) {
+         var global = JSON.parse(JSON.stringify(config.global));
+         delete global.apps;
+
          var loginUrls = config.global.apps['rf-app-erp'].urls;
          var basicInfo = {
             app: config.app,
             environment: options.environment,
+            globalSettings: global,
             loginUrl: loginUrls.main + loginUrls.login,
             loginMainUrl: loginUrls.main,
             termsAndPolicyLink: loginUrls.termsAndPolicyLink
