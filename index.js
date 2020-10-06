@@ -219,7 +219,8 @@ module.exports.start = function (options, next) {
             globalSettings: global,
             loginUrl: loginUrls.main + loginUrls.login,
             loginMainUrl: loginUrls.main,
-            termsAndPolicyLink: loginUrls.termsAndPolicyLink
+            privacyPolicyLink: loginUrls.privacyPolicyLink,
+            agbLink: loginUrls.agbLink
          };
 
          if (options.hasLogin) basicInfo.hasLogin = true;
