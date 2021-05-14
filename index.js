@@ -156,6 +156,12 @@ module.exports.start = function (options, next) {
             function saveToCache (session, callback) {
                // put in cache but do not wait for it
                myCache.set(token, session, function () {});
+
+               // add settings from server cache
+               session = session || {};
+               session.globalSettings = config.global;
+               session.appSettings = config.appSettings;
+
                callback(null, session);
             }
          });
