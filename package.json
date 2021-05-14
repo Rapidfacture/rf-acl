@@ -27,7 +27,7 @@
   },
   "devDependencies": {
     "grunt": "1.4.0",
-    "grunt-eslint": "23.0.0",
+    "grunt-eslint": "23.0.0"
   },
   "scripts": {
     "prepublishOnly": "npm test",
