@@ -16,7 +16,7 @@ var jwt = require('jsonwebtoken'),
    _ = require('lodash');
 
 
-   // logging
+// logging
 var log = {
    info: console.log,
    success: console.log,
