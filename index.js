@@ -61,6 +61,8 @@ module.exports.start = function (options, next) {
          // Actually process token
          return new Promise((resolve, reject) => {
             jwt.verify(token, sessionSecret, { ignoreExpiration: false }, (err, decoded) => {
+               if (decoded.pending) reject('pending');
+
                if (err) {
                   return reject(err);
                } else {
