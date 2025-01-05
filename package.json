@@ -20,7 +20,7 @@
   "dependencies": {
     "async": "2.6.1",
     "node-cache": "4.2.0",
-    "jsonwebtoken": "8.3.0"
+    "jsonwebtoken": "9.0.0"
   },
   "devDependencies": {
     "grunt": "1.4.0",
